@@ -6,32 +6,6 @@ def andre(accounts):
     # Andre, giver of tokens, and maker of yield
     yield accounts[0]
 
-@pytest.fixture
-def currency(interface):
-    #this one is curvesteth
-    yield interface.ERC20('0x06325440D014e39736583c165C2963BA99fAf14E')
-
-@pytest.fixture
-def whale(accounts, web3, currency, chain):
-    #big binance7 wallet
-    #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)
-    #big binance8 wallet
-    acc = accounts.at('0x006d0f31a00e1f9c017ab039e9d0ba699433a28c', force=True)
-
-    assert currency.balanceOf(acc)  > 0
-    
-    yield acc
-
-@pytest.fixture
-def samdev(accounts):
-    #big binance7 wallet
-    #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)
-    #big binance8 wallet
-    acc = accounts.at('0xC3D6880fD95E06C816cB030fAc45b3ffe3651Cb0', force=True)
-
-
-    
-    yield acc
 
 @pytest.fixture
 def token(andre, Token):
@@ -56,11 +30,9 @@ def guardian(accounts):
 
 
 @pytest.fixture
-def vault(pm, gov, rewards, guardian, currency):
+def vault(pm, gov, rewards, guardian, token):
     Vault = pm(config["dependencies"][0]).Vault
-    vault = gov.deploy(Vault)
-    vault.initialize(currency, gov, rewards, "", "", guardian)
-    vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
+    vault = guardian.deploy(Vault, token, gov, rewards, "", "")
     yield vault
 
 
@@ -75,28 +47,12 @@ def keeper(accounts):
     # This is our trusty bot!
     yield accounts[4]
 
-@pytest.fixture
-def live_strategy(Strategy):
-    strategy = Strategy.at('0xCa8C5e51e235EF1018B2488e4e78e9205064D736')
-
-    yield strategy
-
-@pytest.fixture
-def live_vault(pm):
-    Vault = pm(config["dependencies"][0]).Vault
-    vault = Vault.at('0xdCD90C7f6324cfa40d7169ef80b12031770B4325')
-    yield vault
 
 @pytest.fixture
 def strategy(strategist, keeper, vault, Strategy):
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
     yield strategy
-
-@pytest.fixture
-def zapper(strategist, ZapSteth):
-    zapper = strategist.deploy(ZapSteth)
-    yield zapper
 
 
 @pytest.fixture
@@ -147,3 +103,15 @@ def greyhat(accounts, andre, token, vault):
     yield a
 
 
+@pytest.fixture
+def whale(accounts, andre, token, vault):
+    # Totally in it for the tech
+    a = accounts[9]
+    # Has 10% of tokens (was in the ICO)
+    bal = token.totalSupply() // 10
+    token.transfer(a, bal, {"from": andre})
+    # Unlimited Approvals
+    token.approve(vault, 2 ** 256 - 1, {"from": a})
+    # Deposit half their stack
+    vault.deposit(bal // 2, {"from": a})
+    yield a
