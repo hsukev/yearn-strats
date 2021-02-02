@@ -31,6 +31,8 @@ contract StrategyCurveAave is BaseStrategy {
     IERC20 public USDT = IERC20(address(0xdAC17F958D2ee523a2206206994597C13D831ec7));
     ICrvV3 public CRV =  ICrvV3(address(0xD533a949740bb3306d119CC777fa900bA034cd52));
     
+    bool optimizePath = true;
+
     constructor(address _vault) public BaseStrategy(_vault) {
         // You can set these parameters on deployment to whatever you want
         // maxReportDelay = 6300;
@@ -51,7 +53,6 @@ contract StrategyCurveAave is BaseStrategy {
         crvPathUsdt = new address[](2);
         crvPathUsdt[0] = address(CRV);
         crvPathUsdt[1] = address(USDT);
-
     }
 
     function name() external override view returns (string memory) {
@@ -63,9 +64,7 @@ contract StrategyCurveAave is BaseStrategy {
         return CurveLiquidityGaugeV2.balanceOf(address(this));
     }
 
-    function prepareReturn(uint256 _debtOutstanding)
-        internal
-        override
+    function prepareReturn(uint256 _debtOutstanding) internal override
         returns (
             uint256 _profit,
             uint256 _loss,
@@ -111,6 +110,12 @@ contract StrategyCurveAave is BaseStrategy {
         }
     }
 
+    
+    function adjustPosition(uint256 _debtOutstanding) internal override {
+        uint256 _toInvest = want.balanceOf(address(this));
+        CurveLiquidityGaugeV2.deposit(_toInvest);
+    }
+
     function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss){
         uint256 wantBal = want.balanceOf(address(this));
         uint256 stakedBal = CurveLiquidityGaugeV2.balanceOf(address(this));
@@ -122,31 +127,34 @@ contract StrategyCurveAave is BaseStrategy {
         _liquidatedAmount = Math.min(_amountNeeded, want.balanceOf(address(this)));
     }
 
+    function setOptimizePath(bool _toOptimize) external onlyAuthorized {
+        optimizePath = _toOptimize;
+    }
+
     function _sell(uint256 amount) internal {
         if (optimizePath) {
             crvPath = _pathToSmallestReserve();
         }
+    
         IUniswapV2Router02(crvRouter).swapExactTokensForTokens(amount, uint256(0), crvPath, address(this), now);
     }
 
     // Find lowest reserve in pool. Amount to deposit likely won't make enough of a difference to need to split into more than 1 reserve
-    function _pathToSmallestReserve() internal returns (address[] memory){
+    function _pathToSmallestReserve() internal view returns (address[] memory){
         uint256 balanceDai = StableSwapA3CRV.balances(0);
         uint256 balanceUsdc = StableSwapA3CRV.balances(1);
         uint256 balanceUsdt = StableSwapA3CRV.balances(2);
     
-        uint256 max = Math.max(balanceDai, balanceUsdc, balanceUsdt);
-        if (max == balanceDai) {
+        // dai min
+        if (balanceDai < balanceUsdc && balanceDai < balanceUsdt) {
             return crvPathDai;
-        } else if (max == balanceUsdc) {
+        // usdc min
+        } else if ( balanceUsdc < balanceUsdt && balanceUsdc < balanceDai) {
             return crvPathUsdc;
+        // usdt min
         } else {
             return crvPathUsdt;
         }
-    }
-
-    function pathToSmallestReserve(bool _optimize) public onlyAuthorized {
-        optimizePath = _optimize;
     }
 
     function setCRVRouter(bool isUniswap, address[] calldata _path) public onlyGovernance {
@@ -159,15 +167,16 @@ contract StrategyCurveAave is BaseStrategy {
         CRV.approve(crvRouter, uint256(-1));
     }
 
-    function protectedTokens()
-        internal
-        override
-        view
-        returns (address[] memory) {
+    function prepareMigration(address _newStrategy) internal override {
+        // TODO: Transfer any non-`want` tokens to the new strategy
+        // NOTE: `migrate` will automatically forward all `want` in this strategy to the new one
+        prepareReturn(CurveLiquidityGaugeV2.balanceOf(address(this)));
+    }
 
+    function protectedTokens() internal override view returns (address[] memory) {
         address[] memory protected = new address[](1);
-          protected[0] = address(CurveLiquidityGaugeV2);
-          return protected;
+        protected[0] = address(CurveLiquidityGaugeV2);
+        return protected;
     }
 
     receive() external payable {}
