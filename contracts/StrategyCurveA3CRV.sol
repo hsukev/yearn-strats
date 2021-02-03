@@ -23,7 +23,7 @@ contract StrategyCurveAave is BaseStrategy {
     address[] public crvPathUsdc;
     address[] public crvPathUsdt;
 
-    Gauge public CurveLiquidityGaugeV2 =  Gauge(address(0x182B723a58739a9c974cFDB385ceaDb237453c28));
+    Gauge public CurveLiquidityGaugeV2 =  Gauge(address(0xd662908ADA2Ea1916B3318327A97eB18aD588b5d));
     ICurveFi public StableSwapA3CRV =  ICurveFi(address(0xDeBF20617708857ebe4F679508E7b7863a8A8EeE));
 
     IERC20 public DAI = IERC20(address(0x6B175474E89094C44Da98b954EedeAC495271d0F));
@@ -86,15 +86,15 @@ contract StrategyCurveAave is BaseStrategy {
             }
             uint256 daiBalance = DAI.balanceOf(address(this));
             if (daiBalance > 0) {
-                StableSwapA3CRV.add_liquidity{value: daiBalance}([daiBalance, 0], 0);
+                StableSwapA3CRV.add_liquidity([daiBalance, 0, 0], 0, true);
             }
             uint256 usdcBalance = USDC.balanceOf(address(this));
             if (usdcBalance > 0) {
-                StableSwapA3CRV.add_liquidity{value: usdcBalance}([usdcBalance, 0], 0);
+                StableSwapA3CRV.add_liquidity([0, usdcBalance, 0], 0, true);
             }
             uint256 usdtBalance = USDT.balanceOf(address(this));
             if (usdtBalance > 0) {
-                StableSwapA3CRV.add_liquidity{value: usdtBalance}([usdtBalance, 0], 0);
+                StableSwapA3CRV.add_liquidity([0, 0, usdtBalance], 0, true);
             }
 
             _profit = want.balanceOf(address(this));
@@ -149,7 +149,7 @@ contract StrategyCurveAave is BaseStrategy {
         if (balanceDai < balanceUsdc && balanceDai < balanceUsdt) {
             return crvPathDai;
         // usdc min
-        } else if ( balanceUsdc < balanceUsdt && balanceUsdc < balanceDai) {
+        } else if (balanceUsdc < balanceUsdt && balanceUsdc < balanceDai) {
             return crvPathUsdc;
         // usdt min
         } else {
@@ -173,6 +173,7 @@ contract StrategyCurveAave is BaseStrategy {
         prepareReturn(CurveLiquidityGaugeV2.balanceOf(address(this)));
     }
 
+    // crv rewards are always sold for underlying dai, usdc, usdt and immediately deposited back in to the pool
     function protectedTokens() internal override view returns (address[] memory) {
         address[] memory protected = new address[](1);
         protected[0] = address(CurveLiquidityGaugeV2);

@@ -23,9 +23,10 @@ interface ICurveFi {
     function get_virtual_price() external view returns (uint256);
 
     function add_liquidity(
-        // sETH pool
-        uint256[2] calldata amounts,
-        uint256 min_mint_amount
+        // aave pool
+        uint256[3] calldata amounts,
+        uint256 min_mint_amount, 
+        bool use_underlying
     ) external payable;
 
     function remove_liquidity_imbalance(uint256[2] calldata amounts, uint256 max_burn_amount) external;
