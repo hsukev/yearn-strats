@@ -4,12 +4,14 @@ pragma experimental ABIEncoderV2;
 
 import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "./interfaces/curve.sol";
 import {IUniswapV2Router02} from "./interfaces/uniswap.sol";
 
-contract StrategyCurveAave is BaseStrategy {
+
+contract StrategyCurveA3crv is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -18,19 +20,20 @@ contract StrategyCurveAave is BaseStrategy {
     address private sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     address public crvRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address public a3crvPool = 0xDeBF20617708857ebe4F679508E7b7863a8A8EeE;
     address[] public crvPath;
     address[] public crvPathDai;
     address[] public crvPathUsdc;
     address[] public crvPathUsdt;
 
     Gauge public CurveLiquidityGaugeV2 =  Gauge(address(0xd662908ADA2Ea1916B3318327A97eB18aD588b5d));
-    ICurveFi public StableSwapA3CRV =  ICurveFi(address(0xDeBF20617708857ebe4F679508E7b7863a8A8EeE));
+    ICurveFi public StableSwapA3CRV =  ICurveFi(a3crvPool);
 
     IERC20 public DAI = IERC20(address(0x6B175474E89094C44Da98b954EedeAC495271d0F));
     IERC20 public USDC = IERC20(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48));
     IERC20 public USDT = IERC20(address(0xdAC17F958D2ee523a2206206994597C13D831ec7));
     ICrvV3 public CRV =  ICrvV3(address(0xD533a949740bb3306d119CC777fa900bA034cd52));
-    
+
     bool optimizePath = true;
 
     constructor(address _vault) public BaseStrategy(_vault) {
@@ -53,11 +56,13 @@ contract StrategyCurveAave is BaseStrategy {
         crvPathUsdt = new address[](2);
         crvPathUsdt[0] = address(CRV);
         crvPathUsdt[1] = address(USDT);
+
+        crvPath = crvPathDai;
     }
 
     function name() external override view returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return "StrategyCurveA3CRV";
+        return "StrategyCurveA3crv";
     }
 
     function estimatedTotalAssets() public override view returns (uint256) {
@@ -86,16 +91,19 @@ contract StrategyCurveAave is BaseStrategy {
             }
             uint256 daiBalance = DAI.balanceOf(address(this));
             if (daiBalance > 0) {
+                DAI.approve(a3crvPool, daiBalance);
                 StableSwapA3CRV.add_liquidity([daiBalance, 0, 0], 0, true);
             }
-            uint256 usdcBalance = USDC.balanceOf(address(this));
-            if (usdcBalance > 0) {
-                StableSwapA3CRV.add_liquidity([0, usdcBalance, 0], 0, true);
-            }
-            uint256 usdtBalance = USDT.balanceOf(address(this));
-            if (usdtBalance > 0) {
-                StableSwapA3CRV.add_liquidity([0, 0, usdtBalance], 0, true);
-            }
+             uint256 usdcBalance = USDC.balanceOf(address(this));
+             if (usdcBalance > 0) {
+                 USDC.approve(a3crvPool, usdcBalance);
+                 StableSwapA3CRV.add_liquidity([0, usdcBalance, 0], 0, true);
+             }
+             uint256 usdtBalance = USDT.balanceOf(address(this));
+             if (usdtBalance > 0) {
+                 USDT.approve(a3crvPool, usdtBalance);
+                 StableSwapA3CRV.add_liquidity([0, 0, usdtBalance], 0, true);
+             }
 
             _profit = want.balanceOf(address(this));
         }
@@ -132,19 +140,18 @@ contract StrategyCurveAave is BaseStrategy {
     }
 
     function _sell(uint256 amount) internal {
-        if (optimizePath) {
-            crvPath = _pathToSmallestReserve();
-        }
-    
+        // if (optimizePath) {
+        //     crvPath = _pathToSmallestReserve();
+        // }
         IUniswapV2Router02(crvRouter).swapExactTokensForTokens(amount, uint256(0), crvPath, address(this), now);
     }
 
     // Find lowest reserve in pool. Amount to deposit likely won't make enough of a difference to need to split into more than 1 reserve
     function _pathToSmallestReserve() internal view returns (address[] memory){
-        uint256 balanceDai = StableSwapA3CRV.balances(0);
-        uint256 balanceUsdc = StableSwapA3CRV.balances(1);
-        uint256 balanceUsdt = StableSwapA3CRV.balances(2);
-    
+        uint256 balanceDai = StableSwapA3CRV.balances(0) / (10 ** 18);
+        uint256 balanceUsdc = StableSwapA3CRV.balances(1) / (10 ** 6);
+        uint256 balanceUsdt = StableSwapA3CRV.balances(2) / (10 ** 6);
+
         // dai min
         if (balanceDai < balanceUsdc && balanceDai < balanceUsdt) {
             return crvPathDai;
