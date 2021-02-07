@@ -1,16 +1,35 @@
 import pytest
-from brownie import config
+from brownie import config, Contract
+
 
 @pytest.fixture
-def andre(accounts):
+def strategy(strategist, keeper, vault, StrategyCurveA3crv):
+    strategy = strategist.deploy(StrategyCurveA3crv, vault)
+    strategy.setKeeper(keeper)
+    yield strategy
+
+@pytest.fixture
+def vault(pm, gov, rewards, guardian, token):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = guardian.deploy(Vault)
+    vault.initialize(token, gov, rewards, "", "", guardian)
+    vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
+    yield vault
+
+@pytest.fixture
+def token(interface, gov):
+    # a3crv
+    yield Contract("0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900", owner=gov)
+
+
+@pytest.fixture
+def andre(accounts, token):
     # Andre, giver of tokens, and maker of yield
-    yield accounts[0]
-
-
-@pytest.fixture
-def token(andre, Token):
-    yield andre.deploy(Token)
-
+    a3crv_gauge = accounts.at( "0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", force=True)
+    gauge_balance = token.balanceOf(a3crv_gauge)
+    andre_accnt = accounts[0]
+    token.transfer(andre_accnt, gauge_balance // 3, {"from": a3crv_gauge})
+    yield andre_accnt
 
 @pytest.fixture
 def gov(accounts):
@@ -28,14 +47,6 @@ def guardian(accounts):
     # YFI Whale, probably
     yield accounts[2]
 
-
-@pytest.fixture
-def vault(pm, gov, rewards, guardian, token):
-    Vault = pm(config["dependencies"][0]).Vault
-    vault = guardian.deploy(Vault, token, gov, rewards, "", "")
-    yield vault
-
-
 @pytest.fixture
 def strategist(accounts):
     # You! Our new Strategist!
@@ -46,13 +57,6 @@ def strategist(accounts):
 def keeper(accounts):
     # This is our trusty bot!
     yield accounts[4]
-
-
-@pytest.fixture
-def strategy(strategist, keeper, vault, Strategy):
-    strategy = strategist.deploy(Strategy, vault)
-    strategy.setKeeper(keeper)
-    yield strategy
 
 
 @pytest.fixture
