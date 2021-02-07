@@ -20,7 +20,7 @@ def test_ops(
 
     strategy.harvest({"from": strategist})
 
-    print("eCRV = ", strategy.balance() / 1e18)
+    print("a3crv = ", strategy.balance() / 1e18)
 
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
@@ -36,3 +36,34 @@ def test_ops(
     genericStateOfVault(vault, token)
     print("Whale profit: ", (token.balanceOf(whale) - whalebefore) / 1e18)
 
+def test_revoke(token, strategy, vault, whale, gov, strategist):
+    debt_ratio = 10_000
+    vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
+
+    token.approve(vault, 2 ** 256 - 1, {"from": whale})
+    vault.deposit(Wei("100 ether"), {"from": whale})
+    strategy.harvest({"from": strategist})
+
+    genericStateOfStrat(strategy, token, vault)
+    genericStateOfVault(vault, token)
+
+    vault.revokeStrategy(strategy, {"from": gov})
+
+    strategy.harvest({"from": strategist})
+
+    genericStateOfStrat(strategy, token, vault)
+    genericStateOfVault(vault, token)
+
+
+def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
+    debt_ratio = 10_000
+    vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
+
+    token.approve(vault, 2 ** 256 - 1, {"from": whale})
+    vault.deposit(Wei("100 ether"), {"from": whale})
+    strategy.harvest({"from": strategist})
+
+    assert token.balanceOf(vault) == 0
+    vault.updateStrategyDebtRatio(strategy, 5_000, {"from": gov})
+    strategy.harvest({"from": strategist})
+    assert token.balanceOf(vault) > 0
