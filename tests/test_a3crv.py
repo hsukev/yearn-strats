@@ -1,9 +1,9 @@
 from util import genericStateOfStrat, genericStateOfVault
 from brownie import Wei
 
-def test_ops(
-    token, strategy, chain, vault, whale, gov, strategist,
-):
+def test_ops(token, strategy, chain, vault, whale, gov, strategist,):
+    print("----test ops----")
+
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
@@ -37,6 +37,8 @@ def test_ops(
     print("Whale profit: ", (token.balanceOf(whale) - whalebefore) / 1e18)
 
 def test_revoke(token, strategy, vault, whale, gov, strategist):
+    print("----test revoke----")
+
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
@@ -56,6 +58,8 @@ def test_revoke(token, strategy, vault, whale, gov, strategist):
 
 
 def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
+    print("----test reduce limit----")
+
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 

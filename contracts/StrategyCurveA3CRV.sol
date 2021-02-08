@@ -43,6 +43,9 @@ contract StrategyCurveA3crv is BaseStrategy {
         // debtThreshold = 0;
         want.safeApprove(address(CurveLiquidityGaugeV2), uint256(- 1));
         CRV.approve(crvRouter, uint256(- 1));
+        DAI.safeApprove(a3crvPool, uint256(- 1));
+        USDC.safeApprove(a3crvPool, uint256(- 1));
+        USDT.safeApprove(a3crvPool, uint256(- 1));
 
         // using all unwrapped tokens since there is a risk of insufficient funds for wrapped if swapping directly (sushiswap)
         crvPathDai = new address[](2);
@@ -57,7 +60,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         crvPathUsdt[0] = address(CRV);
         crvPathUsdt[1] = address(USDT);
 
-        crvPath = crvPathDai;
+        crvPath = crvPathUsdt;
     }
 
     function name() external override view returns (string memory) {
@@ -89,21 +92,12 @@ contract StrategyCurveA3crv is BaseStrategy {
             if (crvBalance > 0) {
                 _sell(crvBalance);
             }
+
             uint256 daiBalance = DAI.balanceOf(address(this));
-            if (daiBalance > 0) {
-                DAI.approve(a3crvPool, daiBalance);
-                StableSwapA3CRV.add_liquidity([daiBalance, 0, 0], 0, true);
-            }
             uint256 usdcBalance = USDC.balanceOf(address(this));
-            if (usdcBalance > 0) {
-                USDC.approve(a3crvPool, usdcBalance);
-                StableSwapA3CRV.add_liquidity([0, usdcBalance, 0], 0, true);
-            }
             uint256 usdtBalance = USDT.balanceOf(address(this));
-            if (usdtBalance > 0) {
-                USDT.approve(a3crvPool, usdtBalance);
-                StableSwapA3CRV.add_liquidity([0, 0, usdtBalance], 0, true);
-            }
+
+            StableSwapA3CRV.add_liquidity([daiBalance, usdcBalance, usdtBalance], 0, true);
 
             _profit = want.balanceOf(address(this));
         }
