@@ -1,7 +1,8 @@
 from util import genericStateOfStrat, genericStateOfVault
 from brownie import Wei
 
-def test_ops(token, strategy, chain, vault, whale, gov, strategist,):
+
+def test_ops(token, strategy, chain, vault, whale, gov, strategist, ):
     print("----test ops----")
 
     debt_ratio = 10_000
@@ -36,6 +37,7 @@ def test_ops(token, strategy, chain, vault, whale, gov, strategist,):
     genericStateOfVault(vault, token)
     print("Whale profit: ", (token.balanceOf(whale) - whalebefore) / 1e18)
 
+
 def test_revoke(token, strategy, vault, whale, gov, strategist):
     print("----test revoke----")
 
@@ -43,7 +45,8 @@ def test_revoke(token, strategy, vault, whale, gov, strategist):
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
     token.approve(vault, 2 ** 256 - 1, {"from": whale})
-    vault.deposit(Wei("100 ether"), {"from": whale})
+    whalebefore = token.balanceOf(whale)
+    vault.deposit(whalebefore, {"from": whale})
     strategy.harvest({"from": strategist})
 
     genericStateOfStrat(strategy, token, vault)
@@ -64,10 +67,15 @@ def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
     token.approve(vault, 2 ** 256 - 1, {"from": whale})
-    vault.deposit(Wei("100 ether"), {"from": whale})
+    whalebefore = token.balanceOf(whale)
+    vault.deposit(whalebefore, {"from": whale})
     strategy.harvest({"from": strategist})
 
-    assert token.balanceOf(vault) == 0
+    # round off off dust
+    dec = token.decimals()
+    assert token.balanceOf(vault) // 10 ** dec == 0
     vault.updateStrategyDebtRatio(strategy, 5_000, {"from": gov})
     strategy.harvest({"from": strategist})
-    assert token.balanceOf(vault) > 0
+
+    genericStateOfVault(vault, token)
+    assert token.balanceOf(vault) // 10 ** dec > 0

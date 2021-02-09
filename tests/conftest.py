@@ -1,11 +1,15 @@
 import pytest
 from brownie import config, Contract
 
+@pytest.fixture
+def curve_proxy(interface):
+    yield interface.ICurveStrategyProxy("0x9a3a03C614dc467ACC3e81275468e033c98d960E")
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, StrategyCurveA3crv):
+def strategy(strategist, keeper, vault, StrategyCurveA3crv, curve_proxy, gov_live):
     strategy = strategist.deploy(StrategyCurveA3crv, vault)
     strategy.setKeeper(keeper)
+    curve_proxy.approveStrategy(strategy.gaugeA3crv(), strategy, {"from": gov_live})
     yield strategy
 
 @pytest.fixture
@@ -36,6 +40,10 @@ def gov(accounts):
     # yearn multis... I mean YFI governance. I swear!
     yield accounts[1]
 
+@pytest.fixture
+def gov_live(accounts):
+    # yearn multis... I mean YFI governance. I swear!
+    yield accounts.at("0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52", force=True)
 
 @pytest.fixture
 def rewards(gov):
