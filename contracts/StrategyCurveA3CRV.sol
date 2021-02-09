@@ -41,6 +41,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         // maxReportDelay = 6300;
         // profitFactor = 100;
         // debtThreshold = 0;
+        // want = a3crv, curve's aave 3-way pool (aDai+aUsdc+aUsdt)
         want.safeApprove(address(CurveProxy), uint256(- 1));
         Dai.safeApprove(address(PoolA3crv), uint256(- 1));
         Usdc.safeApprove(address(PoolA3crv), uint256(- 1));
