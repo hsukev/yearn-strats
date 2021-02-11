@@ -210,7 +210,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // optimal path to sell crv to maximize `want`
-    function _optimalPath(uint256 _amount) private view returns (address[] memory){
+    function _optimalPath(uint256 _amount) public returns (address[] memory){
         uint256[3] memory wants = _estimateCrvPrices(_amount);
 
         if (wants[0] > wants[1] && wants[0] > wants[2]) {
@@ -224,9 +224,9 @@ contract StrategyCurveA3crv is BaseStrategy {
 
     // estimate amount of `want` back if crv were sold in each of the 3 pool tokens
     function _estimateCrvPrices(uint256 _amount) public returns (uint256[3] memory){
-        uint256 outDai = IUniswapV2Router02(crvPathDai).getAmountsOut(_amount);
-        uint256 outUsdc = IUniswapV2Router02(crvPathUsdc).getAmountsOut(_amount);
-        uint256 outUsdt = IUniswapV2Router02(crvPathUsdt).getAmountsOut(_amount);
+        uint256 outDai = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathDai)[1];
+        uint256 outUsdc = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdc)[1];
+        uint256 outUsdt = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdt)[1];
 
         // amount of want tokens
         uint256 tokenDaiDeposit = PoolA3crv.calc_token_amount([outDai, 0, 0], true);
