@@ -91,8 +91,4 @@ def whale(accounts, andre, token, vault):
     # Has 10% of tokens (was in the ICO)
     bal = token.totalSupply() // 10
     token.transfer(a, bal, {"from": andre})
-    # Unlimited Approvals
-    token.approve(vault, 2 ** 256 - 1, {"from": a})
-    # Deposit half their stack
-    vault.deposit(10 ** 20, {"from": a})
     yield a

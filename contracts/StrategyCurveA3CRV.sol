@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "./interfaces/curve.sol";
@@ -102,7 +101,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // balance of gauge tokens staked. 1:1 with `want`
-    function balanceOfStaked() internal view returns (uint256){
+    function balanceOfStaked() public view returns (uint256){
         return CurveProxy.balanceOf(gaugeA3crv);
         // uses a different nomenclature. This resolves to
         // => return IERC20(_gauge).balanceOf(address(proxy));

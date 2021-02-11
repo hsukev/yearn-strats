@@ -8,32 +8,42 @@ def test_ops(token, strategy, chain, vault, whale, gov, strategist):
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
+    token.approve(vault, 2 ** 256 - 1, {"from": whale})
+    initial_deposit = 100 * 1e18
+    vault.deposit(initial_deposit, {"from": whale})
+
     whalebefore = token.balanceOf(whale)
     strategy.harvest({"from": strategist})
 
+    print("\n-----harvest-----")
+
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
+
+    print("\n-----sleep for a month-----")
 
     chain.sleep(2592000)
     chain.mine(1)
 
     strategy.harvest({"from": strategist})
-
-    print("a3crv = ", strategy.balance() / 1e18)
+    print("\n-----harvest-----")
+    print("a3crv = ", token.balanceOf(strategy) / 1e18)
 
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
 
     print(
         "\nEstimated APR: ",
-        "{:.2%}".format(((vault.totalAssets() - 100 * 1e18) * 12) / (100 * 1e18)),
+        "{:.2%}".format(((vault.totalAssets() - initial_deposit) * 12) / initial_deposit),
     )
 
     vault.withdraw({"from": whale})
-    print("\nWithdraw")
+    print("\n-----withdraw-----")
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
-    print("Whale profit: ", (token.balanceOf(whale) - whalebefore) / 1e18)
+
+    gains = (token.balanceOf(whale) - whalebefore) / 1e18
+    print(f"Whale profit: {gains}", )
 
 
 def test_revoke(token, strategy, vault, whale, gov, strategist):
@@ -42,13 +52,17 @@ def test_revoke(token, strategy, vault, whale, gov, strategist):
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
+    token.approve(vault, 2 ** 256 - 1, {"from": whale})
+    initial_deposit = 10 * 1e18
+    vault.deposit(initial_deposit, {"from": whale})
+
     strategy.harvest({"from": strategist})
 
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
 
     vault.revokeStrategy(strategy, {"from": gov})
-    print("\n----revoked----")
+    print("\n-----revoked-----")
 
     strategy.harvest({"from": strategist})
 
@@ -57,10 +71,15 @@ def test_revoke(token, strategy, vault, whale, gov, strategist):
 
 
 def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
+    print(f"\n----test reduce limit ")
+
     debt_ratio = 10_000
-    print(f"\n----test debt ratio {debt_ratio}----")
+    print(f"\n-----ratio {debt_ratio}-----")
 
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
+    token.approve(vault, 2 ** 256 - 1, {"from": whale})
+    initial_deposit = 10 * 1e18
+    vault.deposit(initial_deposit, {"from": whale})
     strategy.harvest({"from": strategist})
 
     # round off dust
@@ -69,7 +88,7 @@ def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
 
     debt_ratio = 5_000
     vault.updateStrategyDebtRatio(strategy, debt_ratio, {"from": gov})
-    print(f"\n----test debt ratio {debt_ratio}----")
+    print(f"\n-----ratio {debt_ratio}-----")
     strategy.harvest({"from": strategist})
 
     assert token.balanceOf(vault) // 10 ** dec > 0
