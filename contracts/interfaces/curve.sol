@@ -14,7 +14,7 @@ interface IGauge {
 
     function claimable_tokens(address) external view returns (uint256);
 
-    function claimable_reward(address, address) external view returns (uint256);
+    function claimable_reward(address _addressToCheck, address _rewardToken) external view returns (uint256);
 
     function withdraw(uint256) external;
 }
@@ -71,7 +71,7 @@ interface ICurveFi {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function calc_token_amount(uint256[2] calldata amounts, bool is_deposit) external view returns (uint256);
+    function calc_token_amount(uint256[3] calldata amounts, bool is_deposit) external view returns (uint256);
 
     function calc_withdraw_one_coin(uint256 amount, int128 i) external view returns (uint256);
 }

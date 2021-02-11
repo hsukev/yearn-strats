@@ -37,3 +37,7 @@ interface ICurveStrategyProxy {
 
     function claim(address recipient) external;
 }
+
+interface IKeep3rV1Oracle {
+    function current(address tokenIn, uint amountIn, address tokenOut) external view returns (uint amountOut);
+}
