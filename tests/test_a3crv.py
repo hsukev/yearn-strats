@@ -2,15 +2,13 @@ from util import genericStateOfStrat, genericStateOfVault
 from brownie import Wei
 
 
-def test_ops(token, strategy, chain, vault, whale, gov, strategist, ):
-    print("----test ops----")
+def test_ops(token, strategy, chain, vault, whale, gov, strategist):
+    print("\n----test ops----")
 
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
-    token.approve(vault, 2 ** 256 - 1, {"from": whale})
     whalebefore = token.balanceOf(whale)
-    vault.deposit(whalebefore, {"from": whale})
     strategy.harvest({"from": strategist})
 
     genericStateOfStrat(strategy, token, vault)
@@ -39,20 +37,18 @@ def test_ops(token, strategy, chain, vault, whale, gov, strategist, ):
 
 
 def test_revoke(token, strategy, vault, whale, gov, strategist):
-    print("----test revoke----")
+    print("\n----test revoke----")
 
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
 
-    token.approve(vault, 2 ** 256 - 1, {"from": whale})
-    whalebefore = token.balanceOf(whale)
-    vault.deposit(whalebefore, {"from": whale})
     strategy.harvest({"from": strategist})
 
     genericStateOfStrat(strategy, token, vault)
     genericStateOfVault(vault, token)
 
     vault.revokeStrategy(strategy, {"from": gov})
+    print("\n----revoked----")
 
     strategy.harvest({"from": strategist})
 
@@ -61,21 +57,19 @@ def test_revoke(token, strategy, vault, whale, gov, strategist):
 
 
 def test_reduce_limit(token, strategy, vault, whale, gov, strategist):
-    print("----test reduce limit----")
-
     debt_ratio = 10_000
-    vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
+    print(f"\n----test debt ratio {debt_ratio}----")
 
-    token.approve(vault, 2 ** 256 - 1, {"from": whale})
-    whalebefore = token.balanceOf(whale)
-    vault.deposit(whalebefore, {"from": whale})
+    vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})
     strategy.harvest({"from": strategist})
 
-    # round off off dust
+    # round off dust
     dec = token.decimals()
     assert token.balanceOf(vault) // 10 ** dec == 0
-    vault.updateStrategyDebtRatio(strategy, 5_000, {"from": gov})
+
+    debt_ratio = 5_000
+    vault.updateStrategyDebtRatio(strategy, debt_ratio, {"from": gov})
+    print(f"\n----test debt ratio {debt_ratio}----")
     strategy.harvest({"from": strategist})
 
-    genericStateOfVault(vault, token)
     assert token.balanceOf(vault) // 10 ** dec > 0

@@ -94,5 +94,5 @@ def whale(accounts, andre, token, vault):
     # Unlimited Approvals
     token.approve(vault, 2 ** 256 - 1, {"from": a})
     # Deposit half their stack
-    vault.deposit(bal // 2, {"from": a})
+    vault.deposit(10 ** 20, {"from": a})
     yield a

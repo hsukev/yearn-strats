@@ -81,7 +81,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         return
         balanceOfStaked() +
         balanceOfPoolToken();
-        //        _optimalWant(balanceOfReward());
+        _optimalWant(balanceOfReward());
         //        _optimalWant(balanceOfUnclaimedReward());
     }
 
@@ -197,7 +197,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // optimal amount of `want` received if crv were sold
-    function _optimalWant(uint256 _amount) public returns (uint256){
+    function _optimalWant(uint256 _amount) public view returns (uint256){
         uint256[3] memory wants = _estimateCrvPrices(_amount);
 
         if (wants[0] > wants[1] && wants[0] > wants[2]) {
@@ -223,7 +223,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // estimate amount of `want` back if crv were sold in each of the 3 pool tokens
-    function _estimateCrvPrices(uint256 _amount) public returns (uint256[3] memory){
+    function _estimateCrvPrices(uint256 _amount) public view returns (uint256[3] memory){
         uint256 outDai = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathDai)[1];
         uint256 outUsdc = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdc)[1];
         uint256 outUsdt = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdt)[1];
