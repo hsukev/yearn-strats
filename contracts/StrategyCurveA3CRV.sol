@@ -16,7 +16,6 @@ contract StrategyCurveA3crv is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
-
     address private uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address private sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
     address private uniswapOracle = 0x73353801921417F465377c8d898c6f4C0270282C;
@@ -79,9 +78,9 @@ contract StrategyCurveA3crv is BaseStrategy {
     function estimatedTotalAssets() public override view returns (uint256) {
         return
         balanceOfStaked() +
-        balanceOfPoolToken();
+        balanceOfPoolToken() +
         _optimalWant(balanceOfReward());
-        //        _optimalWant(balanceOfUnclaimedReward());
+        //                _optimalWant(balanceOfUnclaimedReward());
     }
 
 
@@ -140,6 +139,7 @@ contract StrategyCurveA3crv is BaseStrategy {
 
             _debtPayment = Math.min(_debtOutstanding, want.balanceOf(address(this)).sub(_profit));
         }
+        return (_profit, _loss, _debtPayment);
     }
 
     function adjustPosition(uint256 _debtOutstanding) internal override {
@@ -157,6 +157,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         }
 
         _liquidatedAmount = Math.min(_amountNeeded, want.balanceOf(address(this)));
+        return (_liquidatedAmount, _loss);
     }
 
 
@@ -199,9 +200,9 @@ contract StrategyCurveA3crv is BaseStrategy {
     function _optimalWant(uint256 _amount) public view returns (uint256){
         uint256[3] memory wants = _estimateCrvPrices(_amount);
 
-        if (wants[0] > wants[1] && wants[0] > wants[2]) {
+        if (wants[0] >= wants[1] && wants[0] >= wants[2]) {
             return wants[0];
-        } else if (wants[1] > wants[0] && wants[1] > wants[2]) {
+        } else if (wants[1] >= wants[0] && wants[1] >= wants[2]) {
             return wants[1];
         } else {
             return wants[2];
@@ -212,9 +213,9 @@ contract StrategyCurveA3crv is BaseStrategy {
     function _optimalPath(uint256 _amount) public returns (address[] memory){
         uint256[3] memory wants = _estimateCrvPrices(_amount);
 
-        if (wants[0] > wants[1] && wants[0] > wants[2]) {
+        if (wants[0] >= wants[1] && wants[0] >= wants[2]) {
             return crvPathDai;
-        } else if (wants[1] > wants[0] && wants[1] > wants[2]) {
+        } else if (wants[1] >= wants[0] && wants[1] >= wants[2]) {
             return crvPathUsdc;
         } else {
             return crvPathUsdt;
@@ -223,6 +224,10 @@ contract StrategyCurveA3crv is BaseStrategy {
 
     // estimate amount of `want` back if crv were sold in each of the 3 pool tokens
     function _estimateCrvPrices(uint256 _amount) public view returns (uint256[3] memory){
+        if (_amount <= 0) {
+            return [uint256(0), uint256(0), uint256(0)];
+        }
+
         uint256 outDai = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathDai)[1];
         uint256 outUsdc = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdc)[1];
         uint256 outUsdt = IUniswapV2Router02(crvRouter).getAmountsOut(_amount, crvPathUsdt)[1];
