@@ -19,7 +19,6 @@ interface IGauge {
     function withdraw(uint256) external;
 }
 
-
 interface ICurveFi {
     function get_virtual_price() external view returns (uint256);
 

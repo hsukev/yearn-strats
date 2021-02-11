@@ -17,6 +17,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
+
     address private uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address private sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
     address private uniswapOracle = 0x73353801921417F465377c8d898c6f4C0270282C;
@@ -25,7 +26,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     address public crvRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; // default uniswap
 
     address public constant gaugeA3crv = address(0xd662908ADA2Ea1916B3318327A97eB18aD588b5d);
-    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant voter = address(0xF147b8125d2ef93FB6965Db97D6746952a133934);
 
     address[] public crvPath;
     address[] public crvPathDai;
@@ -53,6 +54,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         Usdc.safeApprove(address(PoolA3crv), uint256(- 1));
         Usdt.safeApprove(address(PoolA3crv), uint256(- 1));
         Crv.approve(crvRouter, uint256(- 1));
+        Crv.approve(voter, uint256(- 1));
 
         // using all unwrapped tokens since there is a risk of insufficient funds for wrapped if swapping directly (sushiswap)
         crvPathDai = new address[](2);
@@ -78,10 +80,11 @@ contract StrategyCurveA3crv is BaseStrategy {
     function estimatedTotalAssets() public override view returns (uint256) {
         return
         balanceOfStaked() +
-        balanceOfPoolToken() +
-        _optimalWant(balanceOfReward()) +
-        _optimalWant(balanceOfUnclaimedReward());
+        balanceOfPoolToken();
+        //        _optimalWant(balanceOfReward());
+        //        _optimalWant(balanceOfUnclaimedReward());
     }
+
 
     // balance of unstaked `want` tokens
     function balanceOfPoolToken() internal view returns (uint256){
@@ -89,8 +92,8 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // in crv
-    function balanceOfUnclaimedReward() internal view returns (uint256){
-        return IGauge(gaugeA3crv).claimable_reward(address(CurveProxy), address(Crv));
+    function balanceOfUnclaimedReward() external view returns (uint256){
+        return IGauge(gaugeA3crv).claimable_tokens(voter);
     }
 
     // in crv
@@ -193,8 +196,8 @@ contract StrategyCurveA3crv is BaseStrategy {
         return protected;
     }
 
-        // optimal amount of `want` received if crv were sold
-    function _optimalWant(uint256 _amount) private view returns (uint256){
+    // optimal amount of `want` received if crv were sold
+    function _optimalWant(uint256 _amount) public returns (uint256){
         uint256[3] memory wants = _estimateCrvPrices(_amount);
 
         if (wants[0] > wants[1] && wants[0] > wants[2]) {
@@ -220,10 +223,10 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // estimate amount of `want` back if crv were sold in each of the 3 pool tokens
-    function _estimateCrvPrices(uint256 _amount) private view returns (uint256[3] memory){
-        uint256 outDai = _getPrice(address(Crv), _amount, address(Dai));
-        uint256 outUsdc = _getPrice(address(Crv), _amount, address(Usdc));
-        uint256 outUsdt = _getPrice(address(Crv), _amount, address(Usdt));
+    function _estimateCrvPrices(uint256 _amount) public returns (uint256[3] memory){
+        uint256 outDai = IUniswapV2Router02(crvPathDai).getAmountsOut(_amount);
+        uint256 outUsdc = IUniswapV2Router02(crvPathUsdc).getAmountsOut(_amount);
+        uint256 outUsdt = IUniswapV2Router02(crvPathUsdt).getAmountsOut(_amount);
 
         // amount of want tokens
         uint256 tokenDaiDeposit = PoolA3crv.calc_token_amount([outDai, 0, 0], true);
@@ -234,12 +237,6 @@ contract StrategyCurveA3crv is BaseStrategy {
         return wants;
     }
 
-
-    // using yearn oracle implementation. Has to be done in 2 steps bc there's no direct path. crv -> weth -> dai/usdc/usdt
-    function _getPrice(address _in, uint256 _amountIn, address _out) private view returns (uint256){
-        uint256 _outWeth = IKeep3rV1Oracle(oracle).current(_in, _amountIn, weth);
-        return IKeep3rV1Oracle(oracle).current(weth, _outWeth, _out);
-    }
 
     receive() external payable {}
 }   

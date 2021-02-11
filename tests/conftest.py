@@ -1,9 +1,11 @@
 import pytest
 from brownie import config, Contract
 
+
 @pytest.fixture
 def curve_proxy(interface):
     yield interface.ICurveStrategyProxy("0x9a3a03C614dc467ACC3e81275468e033c98d960E")
+
 
 @pytest.fixture
 def strategy(strategist, keeper, vault, StrategyCurveA3crv, curve_proxy, gov_live):
@@ -11,6 +13,7 @@ def strategy(strategist, keeper, vault, StrategyCurveA3crv, curve_proxy, gov_liv
     strategy.setKeeper(keeper)
     curve_proxy.approveStrategy(strategy.gaugeA3crv(), strategy, {"from": gov_live})
     yield strategy
+
 
 @pytest.fixture
 def vault(pm, gov, rewards, guardian, token):
@@ -20,30 +23,43 @@ def vault(pm, gov, rewards, guardian, token):
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     yield vault
 
+
 @pytest.fixture
-def token(interface, gov):
+def token(gov):
     # a3crv
     yield Contract("0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900", owner=gov)
 
 
 @pytest.fixture
+def dai(gov):
+    # a3crv
+    yield Contract("0x6B175474E89094C44Da98b954EedeAC495271d0F", owner=gov)
+
+@pytest.fixture
+def crv(gov):
+    yield Contract("0xD533a949740bb3306d119CC777fa900bA034cd52", owner=gov)
+
+@pytest.fixture
 def andre(accounts, token):
     # Andre, giver of tokens, and maker of yield
-    a3crv_gauge = accounts.at( "0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", force=True)
+    a3crv_gauge = accounts.at("0xd662908ADA2Ea1916B3318327A97eB18aD588b5d", force=True)
     gauge_balance = token.balanceOf(a3crv_gauge)
     andre_accnt = accounts[0]
     token.transfer(andre_accnt, gauge_balance // 3, {"from": a3crv_gauge})
     yield andre_accnt
+
 
 @pytest.fixture
 def gov(accounts):
     # yearn multis... I mean YFI governance. I swear!
     yield accounts[1]
 
+
 @pytest.fixture
 def gov_live(accounts):
     # yearn multis... I mean YFI governance. I swear!
     yield accounts.at("0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52", force=True)
+
 
 @pytest.fixture
 def rewards(gov):
@@ -55,6 +71,7 @@ def guardian(accounts):
     # YFI Whale, probably
     yield accounts[2]
 
+
 @pytest.fixture
 def strategist(accounts):
     # You! Our new Strategist!
@@ -65,54 +82,6 @@ def strategist(accounts):
 def keeper(accounts):
     # This is our trusty bot!
     yield accounts[4]
-
-
-@pytest.fixture
-def nocoiner(accounts):
-    # Has no tokens (DeFi is a ponzi scheme!)
-    yield accounts[5]
-
-
-@pytest.fixture
-def pleb(accounts, andre, token, vault):
-    # Small fish in a big pond
-    a = accounts[6]
-    # Has 0.01% of tokens (heard about this new DeFi thing!)
-    bal = token.totalSupply() // 10000
-    token.transfer(a, bal, {"from": andre})
-    # Unlimited Approvals
-    token.approve(vault, 2 ** 256 - 1, {"from": a})
-    # Deposit half their stack
-    vault.deposit(bal // 2, {"from": a})
-    yield a
-
-
-@pytest.fixture
-def chad(accounts, andre, token, vault):
-    # Just here to have fun!
-    a = accounts[7]
-    # Has 0.1% of tokens (somehow makes money trying every new thing)
-    bal = token.totalSupply() // 1000
-    token.transfer(a, bal, {"from": andre})
-    # Unlimited Approvals
-    token.approve(vault, 2 ** 256 - 1, {"from": a})
-    # Deposit half their stack
-    vault.deposit(bal // 2, {"from": a})
-    yield a
-
-
-@pytest.fixture
-def greyhat(accounts, andre, token, vault):
-    # Chaotic evil, will eat you alive
-    a = accounts[8]
-    # Has 1% of tokens (earned them the *hard way*)
-    bal = token.totalSupply() // 100
-    token.transfer(a, bal, {"from": andre})
-    # Unlimited Approvals
-    token.approve(vault, 2 ** 256 - 1, {"from": a})
-    # Deposit half their stack
-    vault.deposit(bal // 2, {"from": a})
-    yield a
 
 
 @pytest.fixture
