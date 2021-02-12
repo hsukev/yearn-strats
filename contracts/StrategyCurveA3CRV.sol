@@ -80,7 +80,7 @@ contract StrategyCurveA3crv is BaseStrategy {
         balanceOfStaked() +
         balanceOfPoolToken() +
         _optimalWant(balanceOfReward());
-        //                _optimalWant(balanceOfUnclaimedReward());
+//        _optimalWant(balanceOfUnclaimedReward());
     }
 
 
@@ -90,7 +90,7 @@ contract StrategyCurveA3crv is BaseStrategy {
     }
 
     // in crv
-    function balanceOfUnclaimedReward() external view returns (uint256){
+    function balanceOfUnclaimedReward() public view returns (uint256){
         return IGauge(gaugeA3crv).claimable_tokens(voter);
     }
 
