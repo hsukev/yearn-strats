@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-
 interface IGauge {
     function deposit(uint256) external;
 
@@ -23,7 +22,7 @@ interface ICurveFi {
     function get_virtual_price() external view returns (uint256);
 
     function add_liquidity(
-    // aave pool
+        // aave pool
         uint256[3] calldata amounts,
         uint256 min_mint_amount,
         bool use_underlying
