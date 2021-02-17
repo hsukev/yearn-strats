@@ -1,15 +1,9 @@
 from util import genericStateOfStrat, genericStateOfVault
 from brownie import Wei
 
+
 def test_migration(
-    token,
-    strategy,
-    chain,
-    vault,
-    whale,
-    gov,
-    strategist,
-    StrategyCurveA3crv
+    token, strategy, chain, vault, whale, gov, strategist, StrategyCurveA3crv
 ):
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, 0, 1000, {"from": gov})

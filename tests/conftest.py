@@ -35,9 +35,11 @@ def dai(gov):
     # a3crv
     yield Contract("0x6B175474E89094C44Da98b954EedeAC495271d0F", owner=gov)
 
+
 @pytest.fixture
 def crv(gov):
     yield Contract("0xD533a949740bb3306d119CC777fa900bA034cd52", owner=gov)
+
 
 @pytest.fixture
 def andre(accounts, token):
